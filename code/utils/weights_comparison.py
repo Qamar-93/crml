@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
-import tensorflow_privacy as tfp
+# import Training.ModelTrainer which is in the parent directory
+from sys import path
+path.append('../')
 from Training.ModelTrainer import ModelTrainer
 from Metric.RobustnessMetric import RobustnessMetric
 from utils.training_utils import CustomLoss
@@ -18,8 +20,8 @@ num_noises = 20
 # num_noises = 2
 distribution = 'normal'
 percentage = 0.5
-eq_num = "I_12_4"
-with open( f'./configs/equations/{eq_num}.json') as f:
+eq_num = "I_6_2a"
+with open( f'../configs/equations_all/{eq_num}.json') as f:
     configs = json.load(f)
 
 x_len = configs["num_samples"]
@@ -46,8 +48,9 @@ mse_trainer_non_dp = ModelTrainer().get_model("linear", shape_input=input_shape,
 m0 = mse_trainer_non_dp.model
 
 m0.compile(optimizer="adam", loss='mse')
-# m0.load_weights(f"/home/qamar/workspace/crml/code/results_{eq_num}/loss_mse/normal/non_dp/linear/clean/models_all/model_1/model_weights.h5")
-m0.load_weights(f"/home/qamar/workspace/crml/code/results/results_mse_I_12_4/linear/clean/models_all/model_1/model_weights.h5")
+
+m0.load_weights(f"/home/qamar/workspace/crml/code/results_{eq_num}/loss_mse/normal/non-dp/linear/clean/models_all/model_1/model_weights.h5")
+# m0.load_weights(f"/home/qamar/workspace/crml/code/results/results_mse_I_12_4/linear/clean/models_all/model_1/model_weights.h5")
 
 # # predict on the trainin data 
 # y_pred = m0.predict(xy_test[0])
@@ -59,8 +62,8 @@ custom_trainer_non_dp = ModelTrainer().get_model("linear", shape_input=input_sha
 m1 = custom_trainer_non_dp.model
 customloss_non_dp = CustomLoss(model=m1, metric=metric, y_clean=xy_train[1], x_noisy=xy_noisy[0], len_input_features=input_shape, bl_ratio=3)
 m1.compile(optimizer="adam", loss=customloss_non_dp)
-# m1.load_weights(f"/home/qamar/workspace/crml/code/results_{eq_num}/loss_custom_loss/normal/non_dp/linear/clean/models_all/model_1/model_weights.h5")
-m1.load_weights(f"/home/qamar/workspace/crml/code/results/results_custom_I_12_4/linear/clean/models_all/model_1/model_weights.h5")
+m1.load_weights(f"/home/qamar/workspace/crml/code/results_{eq_num}/loss_custom_loss/normal/non-dp/linear/clean/models_all/model_1/model_weights.h5")
+# m1.load_weights(f"/home/qamar/workspace/crml/code/results/results_custom_I_12_4/linear/clean/models_all/model_1/model_weights.h5")
 # y_pred = m1.predict(xy_test[0])
 # print("MSE non_dp custom", np.mean((y_pred - xy_valid[1])**2))
 
@@ -103,7 +106,7 @@ custom_trainer_dp = ModelTrainer().get_model("linear", shape_input=input_shape, 
 m4 = custom_trainer_dp.model
 customloss_dp = CustomLoss(model=m4, metric=metric, y_clean=xy_train[1], x_noisy=xy_noisy[0], len_input_features=input_shape, bl_ratio=3)
 m4.compile(optimizer=optimizer, loss=customloss_dp)
-m4.load_weights(f"/home/qamar/workspace/crml/code/results_{eq_num}/loss_custom_loss/laplace_dp/epsilon_1/linear/clean/models_all/model_1/model_weights.h5")
+m4.load_weights(f"/home/qamar/workspace/crml/code/results_{eq_num}/loss_custom_loss/laplace_dp/epsilon_10/linear/clean/models_all/model_1/model_weights.h5")
 # y_pred = model_dp_mse.predict(xy_test[0])
 # print("MSE dp mse", np.mean((y_pred - xy_valid[1])**2))
 # y_pred = m3.predict(xy_test[0])
@@ -229,4 +232,4 @@ data = {
     
 df = pd.DataFrame(data)
 # save it to a csv file
-df.to_csv(f'./results_{eq_num}/weight_diff_epsilon_1.csv')
+df.to_csv(f'../results_{eq_num}/weight_diff_epsilon_10.csv')

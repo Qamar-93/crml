@@ -128,24 +128,26 @@ class DatasetGenerator:
         # initialize x_noisy with the clean input data
         x_noisy = np.zeros((self.num_noises, self.num_samples, self.num_inputs))
 
-        if self.num_inputs == 1:
-            noises = self.noise_generator.generate_noise(random_seed=random_seeds[0])
-            x_noisy[:,:,0] = np.array([x[:,0] + noise for noise in noises])
+        # if self.num_inputs == 1:
+        #     noises = self.noise_generator.generate_noise(random_seed=random_seeds[0])
+        #     print("noises", len(noises))
+        #     print("x", x.shape)
+        #     x_noisy[:, :, 0] = np.array([x[:, 0] + noise for noise in noises])
             
-        else:    
-            for i in range(self.num_inputs):
-                if i in target_feat_idx:
-                    print("modulating noise for feature", i)
-                    # Generate noise
-                    noises = self.noise_generator.generate_noise(random_seed=random_seeds[i])
-                    # Add noise to the clean input data
-                    x_noisy[:, :, i] = np.array([x[:, i] + noise for noise in noises])
-                else:
-                    x_noisy[:, :, i] = x[:, i]
+        # else:
+        for i in range(self.num_inputs):
+            if i in target_feat_idx:
+                print("modulating noise for feature", i)
+                # Generate noise
+                noises = self.noise_generator.generate_noise(random_seed=random_seeds[i])
+                print("noises", noises, random_seeds[i])
+                # Add noise to the clean input data
+                x_noisy[:, :, i] = np.array([x[:, i] + noise for noise in noises])
+            else:
+                x_noisy[:, :, i] = x[:, i]
 
         # y_noisy is the clean y repeated num_noises times
         y_noisy = np.repeat(y[np.newaxis, :], self.num_noises, axis=0)
-        
         return x_noisy, y_noisy
 
     def extract_g(self, x_noisy, x_clean):
@@ -414,13 +416,15 @@ class DatasetGenerator:
         - (x_test, y_test): The testing data.
         """
         target_feat_idx = config['noisy_input_feats']
+       
+        
         # Generate clean dataset
         x_clean, y_clean = self.generate_dataset()
         x_clean, y_clean = self.meshgrid_x_y(x_clean)
-        
+
         if self.num_inputs > 1:
             x_clean = x_clean.reshape(x_clean.shape[0], -1).T
-        
+        print("after reshaping x_clean", x_clean.shape, "y_clean", y_clean.shape)
         y_clean = y_clean.ravel()
         
         original_num_samples = self.num_samples
@@ -432,7 +436,7 @@ class DatasetGenerator:
 
         # Modulate the clean dataset
         x_noisy, y_noisy = self.modulate_clean(x_clean, y_clean, target_feat_idx, random_seeds)
-
+        
         training_type = config["training_type"]
         
         # Extract the noisy signal with the maximum distance from the clean signal --> Gx
@@ -468,7 +472,7 @@ class DatasetGenerator:
         y_noisy = y_noisy[:, ::sampling_rate]
         gx = gx[::sampling_rate]
         gx_y = gx_y[::sampling_rate]
-
+        
         self.num_samples = x_clean.shape[0]
         self.noise_generator.num_samples = self.num_samples
         

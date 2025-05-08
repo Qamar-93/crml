@@ -1,0 +1,11 @@
+
+    [
+        {
+            "name":"n57",
+            "noise_type":"laplace",
+            "variance":0.5,
+            "epsilon":1,
+            "num_noises":40,
+            "percentage": 1
+        }     
+    ]

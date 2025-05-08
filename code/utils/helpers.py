@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+import torch
 
 # Helper function to get the data based on the type
 def get_data(data_types, x_clean, y_clean, gx, gy):
@@ -227,9 +228,13 @@ def evaluate_and_plot(model, history, xy_test, path="./"):
     print("x_test shape: ", x_test.shape)
     print("y_test shape: ", y_test.shape)
     
-    test_loss = model.evaluate(x_test, y_test)
+    # Ensure x_test is on the same device as the model's parameters
+    if type(x_test) == torch.Tensor:
+        x_test = x_test.to(next(model.parameters()).device)
+    
     # Generate predictions on the test data
     y_pred = model.predict(x_test)
+    print("y_pred shape: ", y_pred.shape)
     if y_pred.shape[1] == 1:
         # Plot the predicted vs actual values
         plt.figure(figsize=(10, 6))
@@ -260,4 +265,3 @@ def evaluate_and_plot(model, history, xy_test, path="./"):
         plt.title('Loss History')
         plt.legend()
         plt.savefig(f"{path}/loss_history.png", bbox_inches='tight', dpi=300)
-        

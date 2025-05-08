@@ -184,6 +184,8 @@ class RobustnessMetric:
                 os.makedirs(path)
             plt.savefig(f"{path}/{fig_name}.pdf", bbox_inches='tight')
             plt.close()
+            # save the data to txt file
+            np.savetxt(f"{path}/{fig_name}.txt", np.column_stack((x, true_sloution, distsminmax_y)), delimiter=",")
             
         if vis:
             plt.show()
@@ -242,6 +244,7 @@ class RobustnessMetric:
       
     # return the ratio of the input to the output of the "d"
     def metric_ratio(self, true_input, g_input, g_output, true_output, dist, weights, **kwargs):
+        print("metric ratio", len(true_input), len(g_input), len(g_output), len(true_output))
         type = kwargs.get("type")
         results = {}
         for d in dist:
@@ -252,7 +255,10 @@ class RobustnessMetric:
                 x, gx = self.rescale_vector(true=x, noisy=gx)
                 # temp = self.calculate_dist(x, g_input[i], d, type=type)
                 temp = self.calculate_dist(x, gx, d, type=type)
+                print("temp", temp, "weight", weights[i], "for feature with index", i)
                 dx = temp * weights[0] if i == 0 else dx + (temp * weights[i])
+                print("dx", dx)
+                
                 # plt.figure(figsize=(6,6))
                 # x_sort_index = np.argsort(x)
                 
@@ -266,6 +272,7 @@ class RobustnessMetric:
             # dy = self.calculate_dist(true_output, g_output, d, type=type)
             
             true_y, gy = self.rescale_vector(true=true_output, noisy=g_output)
+            # true_y, gy = true_output, g_output
             
             # plt.figure(figsize=(6,6))
             # size = len(true_y)
@@ -324,7 +331,7 @@ class RobustnessMetric:
             y_hat = y_hat.numpy()
         
         input_features = x.shape[1] if len(x.shape) > 1 else 1
-        
+
         if weights is None:
             weights = np.ones(input_features)
             
@@ -336,7 +343,8 @@ class RobustnessMetric:
         # x = x.reshape(input_features, x.shape[0])
         if input_features >= 1:
             for i in range(input_features):
-                print("Calculating the RM for feature:", i)
+                print("Calculating the RM for feature:", i+1, "out of ", input_features, "features")
+                print("x shape", x.shape, "x_hat shape", x_hat.shape)
                 if x_hat is not None:
                     x_bounds_feat = self.extract_bounds(x_hat[:, :, i])
                 
@@ -368,7 +376,7 @@ class RobustnessMetric:
                     self.plot_aggregated_distance(x[:, i], x_dists_agg, distsmax=x_dists[0], distsmin=x_dists[1], max_bound=x_bounds_feat[0], min_bound=x_bounds_feat[1], vis=False, save=True, fig_name=f"Max distances for input for noise {i}", path=f"{path}/max_distances_input_noise_{i}")
                 # y_dists = self.bounds_distance(y, (y_bounds[0], y_bounds[1]), inner_dist)
                 # y_dists_agg = self.aggregate_Q(y_dists, Q)
-                # construct G of input 
+                # construct G of input
                 gx = self.construct_G(x_dists_agg, distsmax=x_dists[0], distsmin=x_dists[1], max_bound=x_bounds_feat[0], min_bound=x_bounds_feat[1], Q=Q)
                 if vis or save:
                     # sort the values according to the x

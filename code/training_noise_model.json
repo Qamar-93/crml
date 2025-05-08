@@ -1,0 +1,10 @@
+[
+    {
+        "name":"nt",
+        "noise_type":"normal",
+        "variance":0.5,
+        "epsilon":0.1,
+        "num_noises":40,
+        "percentage":1
+    }
+]

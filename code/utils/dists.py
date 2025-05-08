@@ -159,15 +159,17 @@ def L2_distance(x, y, type="pointwise"):
         return np.sqrt(np.sum([(a-b)*(a-b) for a, b in zip(x, y)]))
 
 # Frechet distance
-def frechet_distance(x, y):
+def frechet_distance(x, y, type="pointwise"):
     xaxis = np.arange(0, len(x))
     repart_x = np.column_stack((xaxis, x))
     repart_y = np.column_stack((xaxis, y))
-
-    return sm.frechet_dist(repart_x, repart_y)
+    if type == "pointwise":
+        return sm.frechet_dist(repart_x, repart_y)
+    else:
+        return sm.frechet_dist(repart_x, repart_y)
 
 # Hausdorff distance
-def hausdorff_distance(x, y):
+def hausdorff_distance(x, y, type="pointwise"):
     xaxis = np.arange(0, len(x))
     repart_x = np.column_stack((xaxis, x))
     repart_y = np.column_stack((xaxis, y))

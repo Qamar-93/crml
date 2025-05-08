@@ -48,90 +48,93 @@ class BaseModel(tf.keras.Model):
         """
         pass
     def compile_and_fit(self, xy_train, xy_valid, fit_args):
-        """
-        Compiles and fits the model using the provided training and validation data.
+        pass
+    
+    # def compile_and_fit(self, xy_train, xy_valid, fit_args):
+    #     """
+    #     Compiles and fits the model using the provided training and validation data.
 
-        Args:
-            xy_train (tuple): A tuple containing the training data (x_train, y_train).
-            xy_valid (tuple): A tuple containing the validation data (x_valid, y_valid).
-            fit_args (dict): Additional arguments for model fitting.
+    #     Args:
+    #         xy_train (tuple): A tuple containing the training data (x_train, y_train).
+    #         xy_valid (tuple): A tuple containing the validation data (x_valid, y_valid).
+    #         fit_args (dict): Additional arguments for model fitting.
 
-        Returns:
-            tuple: A tuple containing the trained model and the training history.
+    #     Returns:
+    #         tuple: A tuple containing the trained model and the training history.
 
-        """
-        self.model = self.model_architecture()
-        x_train = xy_train[0]
-        y_train = xy_train[1]
-        x_valid = xy_valid[0]
-        y_valid = xy_valid[1]
-        fit_args_copy = fit_args.copy()
-        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+    #     """
+    #     self.model = self.model_architecture()
+    #     x_train = xy_train[0]
+    #     y_train = xy_train[1]
+    #     x_valid = xy_valid[0]
+    #     y_valid = xy_valid[1]
+    #     fit_args_copy = fit_args.copy()
+    #     optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
 
-        # use differential privace optimizer
-        # import tensorflow_privacy
-        # optimizer = tensorflow_privacy.DPKerasAdamOptimizer(
-        #     l2_norm_clip=0.7,
-        #     noise_multiplier=2.1,
-        #     num_microbatches=1,
-        #     learning_rate=0.001,
-        # )
-        call_back = None
-        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=fit_args_copy["early_stopping"])
-        if self.loss_function == "custom_loss":
+    #     # # use differential privace optimizer
+    #     # import tensorflow_privacy
+    #     # optimizer = tensorflow_privacy.DPKerasAdamOptimizer(
+    #     #     l2_norm_clip=0.7,
+    #     #     noise_multiplier=2.1,
+    #     #     num_microbatches=1,
+    #     #     learning_rate=0.001,
+    #     # )
+    #     call_back = None
+    #     early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=fit_args_copy["early_stopping"])
+    #     if self.loss_function == "custom_loss":
 
-            metric = fit_args_copy["metric"]
-            x_noisy_valid = fit_args_copy["x_noisy_valid"]
-            x_noisy_train = fit_args_copy["x_noisy_train"]
-            len_input_features = fit_args_copy["len_input_features"]
-            bl_ratio = fit_args_copy["bl_ratio"]
-            gx_dist = fit_args_copy["nominator"]
-            y_clean_valid = fit_args_copy["y_clean_valid"]
-            y_clean_train = fit_args_copy["y_clean_train"]
+    #         metric = fit_args_copy["metric"]
+    #         x_noisy_valid = fit_args_copy["x_noisy_valid"]
+    #         x_noisy_train = fit_args_copy["x_noisy_train"]
+    #         len_input_features = fit_args_copy["len_input_features"]
+    #         bl_ratio = fit_args_copy["bl_ratio"]
+    #         gx_dist = fit_args_copy["nominator"]
+    #         y_clean_valid = fit_args_copy["y_clean_valid"]
+    #         y_clean_train = fit_args_copy["y_clean_train"]
             
-            del fit_args_copy["metric"]
-            del fit_args_copy["x_noisy_train"]
-            del fit_args_copy["x_noisy_valid"]
-            del fit_args_copy["len_input_features"]
-            del fit_args_copy["bl_ratio"]
-            del fit_args_copy["nominator"]
-            del fit_args_copy["y_clean_valid"]
-            del fit_args_copy["y_clean_train"]
-            loss_inst = CustomLoss(model=self.model, metric=metric, 
-                                               y_clean=y_clean_train, x_noisy=x_noisy_train,
-                                               len_input_features=len_input_features, 
-                                               bl_ratio=bl_ratio)
+    #         del fit_args_copy["metric"]
+    #         del fit_args_copy["x_noisy_train"]
+    #         del fit_args_copy["x_noisy_valid"]
+    #         del fit_args_copy["len_input_features"]
+    #         del fit_args_copy["bl_ratio"]
+    #         del fit_args_copy["nominator"]
+    #         del fit_args_copy["y_clean_valid"]
+    #         del fit_args_copy["y_clean_train"]
+    #         loss_inst = CustomLoss(model=self.model, metric=metric, 
+    #                                            y_clean=y_clean_train, x_noisy=x_noisy_train,
+    #                                            len_input_features=len_input_features, 
+    #                                            bl_ratio=bl_ratio)
             
-            self.model.compile(optimizer=optimizer, 
-                               # Metric is calculated on the validation data
-                               metrics=["mse", CustomMetric(model=self.model, y_clean=y_clean_valid, x_noisy=x_noisy_valid,
-                                                                        len_input_features=len_input_features, 
-                                                                         nominator=gx_dist, name="custom_metric")],
-                            #    loss is calculated on the training data
-                               loss=loss_inst)
+    #         self.model.compile(optimizer=optimizer, 
+    #                            # Metric is calculated on the validation data
+    #                            metrics=["mse", CustomMetric(model=self.model, y_clean=y_clean_valid, x_noisy=x_noisy_valid,
+    #                                                                     len_input_features=len_input_features, 
+    #                                                                      nominator=gx_dist, name="custom_metric")],
+    #                         #    loss is calculated on the training data
+    #                            loss=loss_inst)
             
-            early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_mse', patience=fit_args_copy["early_stopping"])
-            # call_back = CustomCallback(loss_inst)
-            call_back = LossCallback(x_noisy=x_noisy_train, model=self.model, y_clean=y_clean_train, bl_ratio=bl_ratio)
-        else:
-        # Compile the model            
-            self.model.compile(optimizer=optimizer, loss=self.loss_function)
-        # activation_logger = ActivationLogger(self.model, validation_data=(x_valid, y_valid))
-        # fit_args_copy["callbacks"] = [early_stopping, activation_logger]
-        fit_args_copy["callbacks"] = [early_stopping]
-        # # if self.loss_function == "custom_loss":
-        # #     fit_args_copy["callbacks"].append(call_back)
-        # del fit_args_copy['early_stopping']
-        fit_args_new = {}
-        for key, value in fit_args_copy.items():
-            if key == 'early_stopping':
-                continue
-            fit_args_new[key] = value
+    #         early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_mse', patience=fit_args_copy["early_stopping"])
+    #         # call_back = CustomCallback(loss_inst)
+    #         call_back = LossCallback(x_noisy=x_noisy_train, model=self.model, y_clean=y_clean_train, bl_ratio=bl_ratio)
+    #     else:
+    #     # Compile the model            
+    #         self.model.compile(optimizer=optimizer, loss=self.loss_function)
+    #     # activation_logger = ActivationLogger(self.model, validation_data=(x_valid, y_valid))
+    #     # fit_args_copy["callbacks"] = [early_stopping, activation_logger]
+    #     fit_args_copy["callbacks"] = [early_stopping]
+    #     # # if self.loss_function == "custom_loss":
+    #     # #     fit_args_copy["callbacks"].append(call_back)
+    #     # del fit_args_copy['early_stopping']
+    #     fit_args_new = {}
+    #     for key, value in fit_args_copy.items():
+    #         if key == 'early_stopping':
+    #             continue
+    #         fit_args_new[key] = value
             
-        # set the batch size to be the entire dataset
-        history = self.model.fit(x_train, y_train, validation_data=(x_valid, y_valid), verbose=2, **fit_args_new)
+    #     # set the batch size to be the entire dataset
+    #     history = self.model.fit(x_train, y_train, validation_data=(x_valid, y_valid), verbose=2, **fit_args_new)
 
-        return self.model, history
+    #     return self.model, history
     
     def save_model(self, path):
         """
@@ -218,23 +221,21 @@ class LinearModel(BaseModel):
         tf.keras.layers.Dense(self.shape_output)
         ])
         return model
-    def load_model(self, filepath):
+    def load_model(self, model_obj, filepath):
         """
         Loads a saved model.
 
         Args:
-            cls (BaseModel): The BaseModel class.
             filepath (str): The path to the saved model.
-            loss_function (str): The loss function to be used for model training.
-
+            model_obj (tf.keras.Model): The model object to load the weights into.
         Returns:
             LinearModel: An instance of the LinearModel class with the loaded model.
         """
-        model = tf.keras.models.load_model(filepath)
-        # model = self.model.load_model(filepath)
-        return model
+        # model = tf.keras.models.load_model(filepath)
+        model_obj.load_weights(f"{filepath}/model_weights.h5")
+        return model_obj
     
-    def save_model(self, path):
+    def save_model(self, model, path):
         """
         Saves the model to a file.
 
@@ -244,83 +245,471 @@ class LinearModel(BaseModel):
         """
         # with open(path, 'wb') as f:
         #     pickle.dump(self.model, f)
-        self.model.save(f"{path}/model.pkl")
-    
-    def fit(self, x_train, y_train):
-        """
-        Fits the model to the provided training data.
-
-        Args:
-            x_train (numpy.ndarray): The training data inputs.
-            y_train (numpy.ndarray): The training data outputs.
-
-        """
-        self.model.fit(x_train, y_train)
-
-class CNNModel(BaseModel):
-    def model_architecture(self):
-        model = tf.keras.models.Sequential()
-        model.add(layers.Conv2D(32, (3, 3), activation='relu', shape_input=(64, 64, 3)))
-        model.add(layers.MaxPooling2D((2, 2)))
-        model.add(layers.Conv2D(64, (3, 3), activation='relu'))
-        model.add(layers.MaxPooling2D((2, 2)))
-        model.add(layers.Conv2D(64, (3, 3), activation='relu'))
-        model.add(layers.Flatten())
-        model.add(layers.Dense(64, activation='relu'))
-        model.add(layers.Dense(10))
-        return model
-
-
-class RandomForestModel(BaseModel):
-    def __init__(self, loss_function, n_estimators=100, max_depth=None):
-        """
-        Initialize a RandomForestModel object.
-
-        Args:
-            loss_function (str): The loss function to be used for training the model.
-            n_estimators (int, optional): The number of trees in the random forest. Defaults to 100.
-            max_depth (int, optional): The maximum depth of each tree in the random forest. Defaults to None.
-        """
-        super().__init__(loss_function)
-        self.n_estimators = n_estimators
-        self.max_depth = max_depth
-
-    def model_architecture(self):
-        """
-        Create the architecture of the random forest model.
-
-        Returns:
-            RandomForestRegressor: The random forest model.
-        """
-        model = RandomForestRegressor(n_estimators=self.n_estimators, max_depth=self.max_depth)
-        return model
+        # self.model.save(f"{path}/model.pkl")
+        print("saving weights")
+        self.model.save_weights(f"{path}/model_weights.h5")
     
     def compile_and_fit(self, xy_train, xy_valid, fit_args):
+        print("this fiiiiiittttttttt")
         """
-        Compile and fit the random forest model.
+        Compiles and fits the model using the provided training and validation data.
 
         Args:
             xy_train (tuple): A tuple containing the training data (x_train, y_train).
             xy_valid (tuple): A tuple containing the validation data (x_valid, y_valid).
-            fit_args (dict): A dictionary containing additional arguments for fitting the model.
+            fit_args (dict): Additional arguments for model fitting.
 
         Returns:
-            RandomForestRegressor: The fitted random forest model.
+            tuple: A tuple containing the trained model and the training history.
+
         """
+        self.model = self.model_architecture()
+        x_train = xy_train[0]
+        y_train = xy_train[1]
+        x_valid = xy_valid[0]
+        y_valid = xy_valid[1]
+        fit_args_copy = fit_args.copy()
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
+
+        # # use differential privace optimizer
+        # import tensorflow_privacy
+        # optimizer = tensorflow_privacy.DPKerasAdamOptimizer(
+        #     l2_norm_clip=0.7,
+        #     noise_multiplier=2.1,
+        #     num_microbatches=1,
+        #     learning_rate=0.001,
+        # )
+        call_back = None
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=fit_args_copy["early_stopping"])
+        if self.loss_function == "custom_loss":
+
+            metric = fit_args_copy["metric"]
+            x_noisy_valid = fit_args_copy["x_noisy_valid"]
+            x_noisy_train = fit_args_copy["x_noisy_train"]
+            len_input_features = fit_args_copy["len_input_features"]
+            bl_ratio = fit_args_copy["bl_ratio"]
+            gx_dist = fit_args_copy["nominator"]
+            y_clean_valid = fit_args_copy["y_clean_valid"]
+            y_clean_train = fit_args_copy["y_clean_train"]
+            
+            del fit_args_copy["metric"]
+            del fit_args_copy["x_noisy_train"]
+            del fit_args_copy["x_noisy_valid"]
+            del fit_args_copy["len_input_features"]
+            del fit_args_copy["bl_ratio"]
+            del fit_args_copy["nominator"]
+            del fit_args_copy["y_clean_valid"]
+            del fit_args_copy["y_clean_train"]
+            loss_inst = CustomLoss(model=self.model, metric=metric, 
+                                               y_clean=y_clean_train, x_noisy=x_noisy_train,
+                                               len_input_features=len_input_features, 
+                                               bl_ratio=bl_ratio)
+            
+            self.model.compile(optimizer=optimizer, 
+                               # Metric is calculated on the validation data
+                               metrics=["mse", CustomMetric(model=self.model, y_clean=y_clean_valid, x_noisy=x_noisy_valid,
+                                                                        len_input_features=len_input_features, 
+                                                                         nominator=gx_dist, name="custom_metric")],
+                            #    loss is calculated on the training data
+                               loss=loss_inst)
+            
+            early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_mse', patience=fit_args_copy["early_stopping"])
+            # call_back = CustomCallback(loss_inst)
+            call_back = LossCallback(x_noisy=x_noisy_train, model=self.model, y_clean=y_clean_train, bl_ratio=bl_ratio)
+        else:
+        # Compile the model            
+            self.model.compile(optimizer=optimizer, loss=self.loss_function)
+        # activation_logger = ActivationLogger(self.model, validation_data=(x_valid, y_valid))
+        # fit_args_copy["callbacks"] = [early_stopping, activation_logger]
+        fit_args_copy["callbacks"] = [early_stopping]
+        # # if self.loss_function == "custom_loss":
+        # #     fit_args_copy["callbacks"].append(call_back)
+        # del fit_args_copy['early_stopping']
+        fit_args_new = {}
+        for key, value in fit_args_copy.items():
+            if key == 'early_stopping':
+                continue
+            fit_args_new[key] = value
+            
+        # set the batch size to be the entire dataset
+        history = self.model.fit(x_train, y_train, validation_data=(x_valid, y_valid), verbose=2, **fit_args_new)
+
+        return self.model, history
+    
+class CNNModel(BaseModel):
+    def __init__(self, shape_input, loss_function, shape_output=1):
+        """
+        Initialize a CNNModel object.
+
+        Args:
+            shape_input (int): The input shape of the model.
+            loss_function (str): The loss function to be used for training the model.
+            
+        """
+        super().__init__(loss_function)
+        self.shape_input = shape_input
+        self.shape_output = shape_output
+        self.model = self.model_architecture()
+        
+    def model_architecture(self):
+        """
+        Creates and returns a Keras Sequential model with a single Dense layer.
+
+        Returns:
+            model (tf.keras.models.Sequential): The created model.
+        """
+        model = tf.keras.models.Sequential([
+        tf.keras.layers.Reshape((self.shape_input, 1), input_shape=[self.shape_input]),
+
+        tf.keras.layers.Conv1D(64, 3, activation='tanh', input_shape=[self.shape_input, 1], kernel_initializer='he_normal', kernel_regularizer="l2", padding='same'),
+        # tf.keras.layers.MaxPooling1D(2),
+        tf.keras.layers.Conv1D(64, 3, activation='tanh', padding='same'),
+        # tf.keras.layers.MaxPooling1D(2),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(self.shape_output)
+        ])
+        return model
+    def load_model(self, model_obj, filepath):
+        """
+        Loads a saved model.
+
+        Args:
+            filepath (str): The path to the saved model.
+            model_obj (tf.keras.Model): The model object to load the weights into.
+        Returns:
+            LinearModel: An instance of the LinearModel class with the loaded model.
+        """
+        # model = tf.keras.models.load_model(filepath)
+        model_obj.load_weights(f"{filepath}/model_weights.h5")
+        return model_obj
+    
+    def save_model(self, model, path):
+        """
+        Saves the model to a file.
+
+        Args:
+            path (str): The path to save the model.
+
+        """
+        # with open(path, 'wb') as f:
+        #     pickle.dump(self.model, f)
+        # self.model.save(f"{path}/model.pkl")
+        print("saving weights")
+        self.model.save_weights(f"{path}/model_weights.h5")
+    
+    def compile_and_fit(self, xy_train, xy_valid, fit_args):
+        """
+        Compiles and fits the model using the provided training and validation data.
+
+        Args:
+            xy_train (tuple): A tuple containing  the training data (x_train, y_train).
+            xy_valid (tuple): A tuple containing the validation data (x_valid, y_valid).
+            fit_args (dict): Additional arguments for model fitting.
+        """
+        self.model = self.model_architecture()
+        x_train = xy_train[0]
+        y_train = xy_train[1]
+        x_valid = xy_valid[0]
+        y_valid = xy_valid[1]
+        fit_args_copy = fit_args.copy()
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=fit_args_copy["early_stopping"])
+        if self.loss_function == "custom_loss":
+
+            metric = fit_args_copy["metric"]
+            x_noisy_valid = fit_args_copy["x_noisy_valid"]
+            x_noisy_train = fit_args_copy["x_noisy_train"]
+            len_input_features = fit_args_copy["len_input_features"]
+            bl_ratio = fit_args_copy["bl_ratio"]
+            gx_dist = fit_args_copy["nominator"]
+            y_clean_valid = fit_args_copy["y_clean_valid"]
+            y_clean_train = fit_args_copy["y_clean_train"]
+            
+            del fit_args_copy["metric"]
+            del fit_args_copy["x_noisy_train"]
+            del fit_args_copy["x_noisy_valid"]
+            del fit_args_copy["len_input_features"]
+            del fit_args_copy["bl_ratio"]
+            del fit_args_copy["nominator"]
+            del fit_args_copy["y_clean_valid"]
+            del fit_args_copy["y_clean_train"]
+            loss_inst = CustomLoss(model=self.model, metric=metric, 
+                                               y_clean=y_clean_train, x_noisy=x_noisy_train,
+                                               len_input_features=len_input_features, 
+                                               bl_ratio=bl_ratio)
+            
+            self.model.compile(optimizer=optimizer, 
+                               # Metric is calculated on the validation data
+                               metrics=["mse", CustomMetric(model=self.model, y_clean=y_clean_valid, x_noisy=x_noisy_valid,
+                                                                        len_input_features=len_input_features, 
+                                                                         nominator=gx_dist, name="custom_metric")],
+                            #    loss is calculated on the training data
+                               loss=loss_inst)
+            
+            early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_mse', patience=fit_args_copy["early_stopping"])
+            # call_back = CustomCallback(loss_inst)
+            call_back = LossCallback(x_noisy=x_noisy_train, model=self.model, y_clean=y_clean_train, bl_ratio=bl_ratio)
+        else:
+        # Compile the model            
+            self.model.compile(optimizer=optimizer, loss=self.loss_function)
+
+        fit_args_copy["callbacks"] = [early_stopping]
+        fit_args_new = {}
+        for key, value in fit_args_copy.items():
+            if key == 'early_stopping':
+                continue
+            fit_args_new[key] = value
+            
+        # set the batch size to be the entire dataset
+        history = self.model.fit(x_train, y_train, validation_data=(x_valid, y_valid), verbose=2, **fit_args_new)
+
+        return self.model, history
+
+class feedforward(BaseModel):
+    def __init__(self, shape_input, loss_function, shape_output=1):
+        """
+        Initialize a FeedForward object.
+
+        Args:
+            shape_input (int): The input shape of the model.
+            loss_function (str): The loss function to be used for training the model.
+            
+        """
+        super().__init__(loss_function)
+        self.shape_input = shape_input
+        self.shape_output = shape_output
+        self.model = self.model_architecture()
+        
+    def model_architecture(self):
+        """
+        Creates and returns a Keras Sequential model with fully connected (Dense) layers.
+        This model includes 6 hidden layers: first 3 with 128 neurons, and the last 3 with 64 neurons,
+        all using Softplus activation functions.
+
+        Returns:
+            model (tf.keras.models.Sequential): The created model.
+        """
+        model = tf.keras.models.Sequential([
+            
+            # Reshape input to match [input_shape, 1] if needed (if not necessary, remove this line)
+            tf.keras.layers.Reshape((self.shape_input, 1), input_shape=[self.shape_input]),
+
+            # First 3 Dense layers with 128 neurons each, using Softplus activation
+            tf.keras.layers.Dense(128, activation='softplus'),
+            tf.keras.layers.Dense(128, activation='softplus'),
+            tf.keras.layers.Dense(128, activation='softplus'),
+
+            # Last 3 Dense layers with 64 neurons each, using Softplus activation
+            tf.keras.layers.Dense(64, activation='softplus'),
+            tf.keras.layers.Dense(64, activation='softplus'),
+            tf.keras.layers.Dense(64, activation='softplus'),
+            
+            # Output layer with the number of neurons equal to the shape of output
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(self.shape_output)  # Adjust output layer as per the task (e.g., regression or classification)
+        ])
+        
+        return model
+
+    def load_model(self, model_obj, filepath):
+        """
+        Loads a saved model.
+
+        Args:
+            filepath (str): The path to the saved model.
+            model_obj (tf.keras.Model): The model object to load the weights into.
+        Returns:
+            LinearModel: An instance of the LinearModel class with the loaded model.
+        """
+        # model = tf.keras.models.load_model(filepath)
+        model_obj.load_weights(f"{filepath}/model_weights.h5")
+        return model_obj
+    
+    def save_model(self, model, path):
+        """
+        Saves the model to a file.
+
+        Args:
+            path (str): The path to save the model.
+
+        """
+        # with open(path, 'wb') as f:
+        #     pickle.dump(self.model, f)
+        # self.model.save(f"{path}/model.pkl")
+        print("saving weights")
+        self.model.save_weights(f"{path}/model_weights.h5")
+    
+    def compile_and_fit(self, xy_train, xy_valid, fit_args):
+        """
+        Compiles and fits the model using the provided training and validation data.
+
+        Args:
+            xy_train (tuple): A tuple containing  the training data (x_train, y_train).
+            xy_valid (tuple): A tuple containing the validation data (x_valid, y_valid).
+            fit_args (dict): Additional arguments for model fitting.
+        """
+        self.model = self.model_architecture()
+        x_train = xy_train[0]
+        y_train = xy_train[1]
+        x_valid = xy_valid[0]
+        y_valid = xy_valid[1]
+        fit_args_copy = fit_args.copy()
+        optimizer = tf.keras.optimizers.Adam(learning_rate=0.001)
+
+        early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=fit_args_copy["early_stopping"])
+        if self.loss_function == "custom_loss":
+
+            metric = fit_args_copy["metric"]
+            x_noisy_valid = fit_args_copy["x_noisy_valid"]
+            x_noisy_train = fit_args_copy["x_noisy_train"]
+            len_input_features = fit_args_copy["len_input_features"]
+            bl_ratio = fit_args_copy["bl_ratio"]
+            gx_dist = fit_args_copy["nominator"]
+            y_clean_valid = fit_args_copy["y_clean_valid"]
+            y_clean_train = fit_args_copy["y_clean_train"]
+            
+            del fit_args_copy["metric"]
+            del fit_args_copy["x_noisy_train"]
+            del fit_args_copy["x_noisy_valid"]
+            del fit_args_copy["len_input_features"]
+            del fit_args_copy["bl_ratio"]
+            del fit_args_copy["nominator"]
+            del fit_args_copy["y_clean_valid"]
+            del fit_args_copy["y_clean_train"]
+            loss_inst = CustomLoss(model=self.model, metric=metric, 
+                                               y_clean=y_clean_train, x_noisy=x_noisy_train,
+                                               len_input_features=len_input_features, 
+                                               bl_ratio=bl_ratio)
+            
+            self.model.compile(optimizer=optimizer, 
+                               # Metric is calculated on the validation data
+                               metrics=["mse", CustomMetric(model=self.model, y_clean=y_clean_valid, x_noisy=x_noisy_valid,
+                                                                        len_input_features=len_input_features, 
+                                                                         nominator=gx_dist, name="custom_metric")],
+                            #    loss is calculated on the training data
+                               loss=loss_inst)
+            
+            early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_mse', patience=fit_args_copy["early_stopping"])
+            # call_back = CustomCallback(loss_inst)
+            call_back = LossCallback(x_noisy=x_noisy_train, model=self.model, y_clean=y_clean_train, bl_ratio=bl_ratio)
+        else:
+        # Compile the model            
+            self.model.compile(optimizer=optimizer, loss=self.loss_function)
+
+        fit_args_copy["callbacks"] = [early_stopping]
+        fit_args_new = {}
+        for key, value in fit_args_copy.items():
+            if key == 'early_stopping':
+                continue
+            fit_args_new[key] = value
+            
+        # set the batch size to be the entire dataset
+        history = self.model.fit(x_train, y_train, validation_data=(x_valid, y_valid), verbose=2, **fit_args_new)
+
+        return self.model, history
+
+# class RandomForestModel(BaseModel):
+#     def __init__(self, loss_function, n_estimators=100, max_depth=None):
+#         """
+#         Initialize a RandomForestModel object.
+
+#         Args:
+#             loss_function (str): The loss function to be used for training the model.
+#             n_estimators (int, optional): The number of trees in the random forest. Defaults to 100.
+#             max_depth (int, optional): The maximum depth of each tree in the random forest. Defaults to None.
+#         """
+#         super().__init__(loss_function)
+#         self.n_estimators = n_estimators
+#         self.max_depth = max_depth
+
+#     def model_architecture(self):
+#         """
+#         Create the architecture of the random forest model.
+
+#         Returns:
+#             RandomForestRegressor: The random forest model.
+#         """
+#         model = RandomForestRegressor(n_estimators=self.n_estimators, max_depth=self.max_depth)
+#         return model
+    
+#     def compile_and_fit(self, xy_train, xy_valid, fit_args):
+#         """
+#         Compile and fit the random forest model.
+
+#         Args:
+#             xy_train (tuple): A tuple containing the training data (x_train, y_train).
+#             xy_valid (tuple): A tuple containing the validation data (x_valid, y_valid).
+#             fit_args (dict): A dictionary containing additional arguments for fitting the model.
+
+#         Returns:
+#             RandomForestRegressor: The fitted random forest model.
+#         """
+#         x_train = xy_train[0]
+#         y_train = xy_train[1]
+#         self.model.fit(x_train, y_train)
+#         return self.model
+
+
+class RandomForestModel(BaseModel):
+    def __init__(self, loss_function, shape_input=1, output_shape=1):
+        super().__init__(loss_function)
+        self.model = self.model_architecture()
+        self.loss_function = loss_functions(loss_function)
+
+    def model_architecture(self):
+        model = RandomForestRegressor()
+        return model
+
+    def compile_and_fit(self, xy_train, xy_valid, fit_args):
         x_train = xy_train[0]
         y_train = xy_train[1]
         self.model.fit(x_train, y_train)
-        return self.model
-    
 
+        y_pred_valid = self.model.predict(xy_valid[0])
+        y_pred_train = self.model.predict(xy_train[0])
+        history = History(self.loss_function(y_pred_train, xy_train[1]).numpy(), self.loss_function(y_pred_valid, xy_valid[1]).numpy())
 
+        return self.model, history
+
+    def save_model(self, model, path):
+        with open(f"{path}/model.pkl", 'wb') as f:
+            pickle.dump(self.model, f)
+
+    def load_model(self, filepath, model_obj):
+        model = pickle.load(open(f'{filepath}/model.pkl', 'rb'))
+        return model
+
+    def evaluate(self, x, y):
+        return self.loss_function(self.model.predict(x), y).numpy()
+
+    def predict(self, x):
+        y_pred= self.model.predict(x)
+        # reshape it to be (#num_samples, 1) instead of (#num_samples,)
+        y_pred = y_pred.reshape(-1, 1)
+        return y_pred
+
+def loss_functions(loss_string):
+    if loss_string == "mse":
+        return tf.keras.losses.MeanSquaredError()
+    elif loss_string == "mae":
+        return tf.keras.losses.MeanAbsoluteError()
+    else:
+        raise ValueError(f"Loss function '{loss_string}' not recognized.")
+class History:
+    def __init__(self, loss, val_loss):
+        self.history = {
+            "loss": [loss],
+            "val_loss": [val_loss]
+        }
+        
 class LinearRegressionModel(BaseModel):
-    def __init__(self, loss_function, input_shape=1, output_shape=1):
+    def __init__(self, loss_function, shape_input=1, output_shape=1):
         
         
         super().__init__(loss_function)
         self.model = self.model_architecture()
-        
+        self.loss_function = loss_functions(loss_function)
     def model_architecture(self):
         model = LinearRegression()
         return model
@@ -329,6 +718,83 @@ class LinearRegressionModel(BaseModel):
         x_train = xy_train[0]
         y_train = xy_train[1]
         self.model.fit(x_train, y_train)
-        return self.model, None
+        
+        y_pred_valid = self.model.predict(xy_valid[0])
+        y_pred_train = self.model.predict(xy_train[0])
+        history = History(self.loss_function(y_pred_train, xy_train[1]).numpy(), self.loss_function(y_pred_valid, xy_valid[1]).numpy())
+        
+        return self.model, history
     
+    def save_model(self, model, path):
+        with open(f"{path}/model.pkl", 'wb') as f:
+            pickle.dump(self.model, f)
     
+    def load_model(self, filepath, model_obj):
+        
+        model = pickle.load(open(f'{filepath}/model.pkl', 'rb'))
+        # instance = LinearRegressionModel(loss_function)
+        # instance.model = model
+        return model
+    def evaluate(self, x, y):
+        return self.loss_function(self.model.predict(x), y).numpy()
+    
+    def predict(self, x):
+        y_pred= self.model.predict(x)
+        # reshape it to be (#num_samples, 1) instead of (#num_samples,)
+        y_pred = y_pred.reshape(-1, 1)
+        return y_pred
+
+from statsmodels.tsa.ar_model import AutoReg
+
+class AutoRegressiveModel(BaseModel):
+    def __init__(self, loss_function, shape_input=1, output_shape=1):
+        super().__init__(loss_function)
+        self.model = None
+        self.loss_function = loss_functions(loss_function)
+
+    def model_architecture(self, x_train):
+        model = AutoReg(x_train, lags=1)
+        return model
+
+    def compile_and_fit(self, xy_train, xy_valid, fit_args):
+        x_train = xy_train[0]
+        y_train = xy_train[1]
+        self.model = self.model_architecture(x_train)
+        self.model = self.model.fit()
+        x_valid, y_valid = xy_valid
+         
+        y_pred_valid = self.model.predict(start=1, end=len(x_valid)-1, dynamic=False)
+        y_pred_train = self.model.predict(start=1, end=len(x_train)-1, dynamic=False)
+        print("y_pred_train", y_pred_train.shape)
+        print("y_train", y_train.shape)
+        # Ensure the shapes match before calculating the loss
+        y_pred_train = tf.reshape(y_pred_train, [-1])
+        y_train = tf.reshape(y_train[1:], [-1])  # Exclude the first data point
+        y_pred_valid = tf.reshape(y_pred_valid, [-1])
+        y_valid = tf.reshape(y_valid[1:], [-1])
+        print("y_pred_train", y_pred_train.shape)
+        print("y_train", y_train.shape)
+        print("y_pred_valid", y_pred_valid.shape)
+        print("y_valid", y_valid.shape)
+        print(self.loss_function(y_pred_train, y_train).numpy())
+        print(self.loss_function(y_pred_valid, y_valid).numpy())
+        history = History(self.loss_function(y_pred_train, y_train).numpy(), self.loss_function(y_pred_valid, y_valid).numpy())
+
+        return self.model, history
+
+    def save_model(self, model, path):
+        with open(f"{path}/model.pkl", 'wb') as f:
+            pickle.dump(self.model, f)
+
+    def load_model(self, filepath, model_obj):
+        model = pickle.load(open(f'{filepath}/model.pkl', 'rb'))
+        return model
+
+    def evaluate(self, x, y):
+        return self.loss_function(self.model.predict(start=self.model.model.k_ar, end=len(x)-1, dynamic=False), y).numpy()
+
+    def predict(self, x):
+        y_pred= self.model.predict(start=1, end=len(x)*2-1, dynamic=False)
+        # reshape it to be (#num_samples, 1) instead of (#num_samples,)
+        y_pred = y_pred.reshape(-1, 1)
+        return y_pred
