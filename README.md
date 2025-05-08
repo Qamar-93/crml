@@ -1,4 +1,4 @@
-# crml
+# CRML
 Certifiably Robust Machine Learning
 
 ## The refactored version of this code is available in [RARE](https://github.com/3brahimi/RARE/).
