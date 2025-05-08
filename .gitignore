@@ -160,7 +160,8 @@ cython_debug/
 #.idea/
 
 # results folders
-results_*/
-
+results_all.zip
 code/configs/equations_all/
 code/packages.txt
+results_all.zip
+results_all/*
